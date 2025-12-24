@@ -1,0 +1,17 @@
+[project]
+name = "pyasync"
+version = "0.1.0"
+description = "Execute async functions transparently without wrappers, no headaches, just fun!"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    { name = "Marcio Bernardes B. Jr.", email = "marciobernardes39@gmail.com" }
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
