@@ -9,6 +9,12 @@ I was tired of writing wrappers for my async functions, so I created this librar
 ## Installation
 
 ```bash
+pip install python-async
+```
+
+Or install from source:
+
+```bash
 git clone https://github.com/marciobbj/pyasync.git
 cd pyasync
 pip install -e .
