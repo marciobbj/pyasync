@@ -1,5 +1,5 @@
 [project]
-name = "pyasync"
+name = "python-async"
 version = "0.1.0"
 description = "A minimalist Python library for async execution. No event loops, no complex setup - just simple, intuitive Python code."
 readme = "README.md"

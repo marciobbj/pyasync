@@ -1,2 +1,14 @@
+# Build artifacts
 *.egg-info
 __pycache__
+dist/
+build/
+
+# Python
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
