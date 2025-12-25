@@ -1,8 +1,8 @@
 # PyAsync
 
-**Thread-based parallelism for Python.** Simple, explicit API for running tasks in parallel.
+**Thread-based parallelism for Python.** 
 
-No magic, just straightforward parallel execution using threads.
+Simple, explicit API for running tasks in parallel. No magic, just straightforward parallel execution using threads.
 
 ## Installation
 
