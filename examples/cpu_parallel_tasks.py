@@ -48,23 +48,23 @@ def main():
     print("-" * 40)
     
     ranges = [
-        (1, 50000),
-        (50000, 100000),
-        (100000, 150000),
-        (150000, 200000),
+        (1, 100000),
+        (100000, 300000),
+        (300000, 500000),
+        (500000, 1000000),
     ]
     
     # Sequential timing
-    start = time.monotonic()
+    start_one = time.monotonic()
     sequential_results = [count_primes(s, e) for s, e in ranges]
-    sequential_time = time.monotonic() - start
+    sequential_time = time.monotonic() - start_one
     
     # Parallel timing
-    start = time.monotonic()
+    start_two = time.monotonic()
     parallel_results = pyasync.cpu_parallel(
         *[partial(count_primes, s, e) for s, e in ranges]
     )
-    parallel_time = time.monotonic() - start
+    parallel_time = time.monotonic() - start_two
     
     print(f"Ranges: {ranges}")
     print(f"Primes found: {parallel_results}")

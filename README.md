@@ -207,20 +207,19 @@ Total time: 2.01s (longest task was 2s)
 
 ```
 $ python examples/cpu_parallel_tasks.py
-
 ============================================================
 CPU-Bound Parallel Tasks Example
 ============================================================
 
 1. Parallel Prime Counting
 ----------------------------------------
-Ranges: [(1, 50000), (50000, 100000), (100000, 150000), (150000, 200000)]
-Primes found: [5133, 4459, 4256, 4136]
-Total primes: 17984
+Ranges: [(1, 100000), (100000, 300000), (300000, 500000), (500000, 1000000)]
+Primes found: [9592, 16405, 15541, 36960]
+Total primes: 78498
 
-Sequential time: 0.11s
-Parallel time:   0.10s
-Speedup:         1.1x
+Sequential time: 1.11s
+Parallel time:   0.76s
+Speedup:         1.5x
 
 2. Background Task with Monitoring
 ----------------------------------------
