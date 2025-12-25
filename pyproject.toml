@@ -1,7 +1,7 @@
 [project]
 name = "python-async"
-version = "0.2.0"
-description = "Thread-based parallelism for Python. Simple, explicit API for running tasks in parallel."
+version = "0.3.0"
+description = "Thread and Process-based parallelism for Python. Simple, explicit API for running tasks in parallel."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
