@@ -1,7 +1,5 @@
 """
-Example: Web scraping with gather().
-
-Demonstrates parallel web scraping of multiple URLs.
+Example: Parallel web scraping.
 """
 
 import pyasync
@@ -9,11 +7,10 @@ import requests
 import time
 
 
-async def scrape_url(url):
+def scrape_url(url):
     """Fetch a URL and extract basic info."""
     start = time.time()
-    
-    response = await requests.get(url, timeout=10)
+    response = requests.get(url, timeout=10)
     elapsed = time.time() - start
     
     return {
@@ -38,7 +35,10 @@ def main():
     print(f"Scraping {len(urls)} URLs in parallel...\n")
     
     start = time.time()
-    results = pyasync.gather(*[scrape_url(url) for url in urls])
+    
+    # Create lambdas for each URL
+    results = pyasync.parallel(*[lambda u=url: scrape_url(u) for url in urls])
+    
     total_time = time.time() - start
     
     # Display results

@@ -1,6 +1,5 @@
 """
-Test concurrent execution with gather().
-This should complete in ~1-2 seconds, not ~3+ seconds.
+Example: Simple parallel HTTP requests.
 """
 
 import pyasync
@@ -8,24 +7,22 @@ import requests
 import time
 
 
-async def fetch(url):
+def fetch(url):
     """Fetch a URL and return status code."""
-    response = await requests.get(url)
+    response = requests.get(url)
     return response.status_code
 
 
 def main():
-    print("Testing concurrent execution with gather()...")
     print("Making 3 requests to httpbin.org/delay/1 (each takes 1 second)")
     
     start = time.time()
     
-    # Using gather for parallel execution
-    url = "https://httpbin.org/delay/1"
-    results = pyasync.gather(
-        fetch(url),
-        fetch(url),
-        fetch(url)
+    # All 3 requests run in PARALLEL
+    results = pyasync.parallel(
+        lambda: fetch("https://httpbin.org/delay/1"),
+        lambda: fetch("https://httpbin.org/delay/1"),
+        lambda: fetch("https://httpbin.org/delay/1")
     )
     
     elapsed = time.time() - start
@@ -34,7 +31,7 @@ def main():
     print(f"Elapsed time: {elapsed:.2f}s")
     
     if elapsed < 2.5:
-        print("CONCURRENT: Requests ran in parallel!")
+        print("PARALLEL: All requests ran simultaneously!")
     else:
         print("SEQUENTIAL: Requests ran one after another")
 

@@ -1,14 +1,14 @@
 [project]
 name = "python-async"
-version = "0.1.0"
-description = "A minimalist Python library for async execution. No event loops, no complex setup - just simple, intuitive Python code."
+version = "0.2.0"
+description = "Thread-based parallelism for Python. Simple, explicit API for running tasks in parallel."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     { name = "Marcio Bernardes B. Jr.", email = "marciobernardes39@gmail.com" }
 ]
-keywords = ["async", "asyncio", "concurrency", "threading", "await", "coroutine"]
+keywords = ["parallel", "threading", "concurrency", "threadpool", "multithread"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

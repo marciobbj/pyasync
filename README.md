@@ -1,12 +1,8 @@
 # PyAsync
 
-**Thread-based parallelism with async-like syntax** for Python. Simplify concurrent code without the complexity of asyncio.
+**Thread-based parallelism for Python.** Simple, explicit API for running tasks in parallel.
 
-> ⚠️ **Important:** This is NOT a replacement for proper async programming. It's a convenience tool that uses threads under the hood, not true non-blocking I/O. See [When to Use](#when-to-use-and-when-not-to) below.
-
-## Why?
-
-I wanted a simpler way to run HTTP requests in parallel without asyncio boilerplate. This library provides async-like syntax powered by threads - great for scripts and prototyping, not for production async applications.
+No magic, just straightforward parallel execution using threads.
 
 ## Installation
 
@@ -14,139 +10,141 @@ I wanted a simpler way to run HTTP requests in parallel without asyncio boilerpl
 pip install python-async
 ```
 
-Or install from source:
-
-```bash
-git clone https://github.com/marciobbj/pyasync.git
-cd pyasync
-pip install -e .
-```
-
 ## Quick Start
-
-```python
-import pyasync
-
-async def fetch_data():
-    await pyasync.sleep(1)
-    return {"message": "Hello, World!"}
-
-# No wrapper needed - runs synchronously
-data = fetch_data()
-print(data)  # {'message': 'Hello, World!'}
-```
-
-## Parallel Execution with gather()
-
-The main value of this library - **run multiple tasks in parallel using threads**:
 
 ```python
 import pyasync
 import requests
 
-async def fetch(url):
-    response = await requests.get(url)
-    return response.status_code
+def fetch(url):
+    return requests.get(url).json()
 
-# All 3 requests run in PARALLEL threads!
-results = pyasync.gather(
-    fetch("https://httpbin.org/delay/1"),
-    fetch("https://httpbin.org/delay/1"),
-    fetch("https://httpbin.org/delay/1")
+# Run 3 requests in parallel - takes ~1 second, not ~3 seconds!
+results = pyasync.parallel(
+    lambda: fetch("https://api.example.com/users/1"),
+    lambda: fetch("https://api.example.com/users/2"),
+    lambda: fetch("https://api.example.com/users/3")
 )
-# Takes ~1 second, not ~3 seconds!
-```
-
-```
-$ python examples/web_scraping.py
-
-Total time:                    0.69s
-Sequential would take:         1.23s
-Speedup:                       1.8x faster
-```
-
-## When to Use (and When NOT to)
-
-### Good Use Cases
-- Quick scripts that make multiple HTTP requests
-- Prototyping concurrent code
-- Batch processing with I/O operations
-
-### Not Recommended For
-- Production applications requiring high concurrency
-- Thousands of simultaneous connections (use asyncio/aiohttp)
-- CPU-bound tasks (use multiprocessing)
-- Applications where true non-blocking I/O matters
-
-## How It Works
-
-1. **Import Hook** - Intercepts module loading
-2. **AST Transformation** - Wraps async function calls automatically
-3. **ThreadPoolExecutor** - Powers parallel execution for `gather()` and `spawn()`
-
-**Key detail:** When you `await` a sync function, it runs normally in the same thread and returns immediately. There's no threading for individual `await` expressions - threading only happens with `gather()` and `spawn()`.
-
-```
-gather(task1, task2, task3)
-         │       │       │
-         ▼       ▼       ▼
-    [Thread1][Thread2][Thread3]
-         │       │       │
-         └───────┴───────┘
-                 │
-         Collect Results
 ```
 
 ## API
 
-| Function | Description |
-|----------|-------------|
-| `gather(*coros)` | Run tasks in parallel threads, return list of results |
-| `spawn(coro)` | Start task in background thread, return Task handle |
-| `sleep(seconds)` | Pause execution |
+### `parallel(*callables)`
 
-## Background Tasks
+Run multiple functions in parallel threads. Returns results in order.
 
 ```python
-import pyasync
+results = pyasync.parallel(
+    lambda: requests.get("https://api1.com"),
+    lambda: requests.get("https://api2.com"),
+    lambda: requests.get("https://api3.com")
+)
+# All 3 run simultaneously!
+```
 
-async def slow_operation():
-    await pyasync.sleep(5)
-    return "done!"
+### `background(callable)`
 
-# Start in background thread
-task = pyasync.spawn(slow_operation())
+Start a function in the background. Returns a Task.
 
-# Do other things while it runs...
+```python
+task = pyasync.background(lambda: slow_operation())
+
+# Do other work while it runs...
 print("Working...")
 
 # Get result when ready
 result = task.result()
 ```
 
+### `run(callable)`
+
+Run a single function in the thread pool.
+
+```python
+result = pyasync.run(lambda: requests.get("https://api.com"))
+```
+
 ## Examples
 
-See the `examples/` directory:
-- `simple_async.py` - Basic async function
-- `simple_async_http.py` - HTTP request with requests
-- `simple_concurrent_requests.py` - Parallel HTTP requests
-- `background_tasks.py` - spawn() for background work
-- `web_scraping.py` - Parallel web scraping
-- `multiple_api_calls.py` - Parallel API calls
+### Parallel Tasks
+
+```
+$ python examples/simple_parallel.py
+
+=== Simple Parallel Tasks ===
+
+[Task A] Starting...
+[Task B] Starting...
+[Task C] Starting...
+[Task A] Done!
+[Task C] Done!
+[Task B] Done!
+
+Results: ['Task A completed', 'Task B completed', 'Task C completed']
+Total time: 2.01s (longest task was 2s)
+```
+
+### Parallel API Calls
+
+```
+$ python examples/parallel_api_calls.py
+
+=== Parallel API Calls ===
+
+Fetching 3 users in parallel...
+  - Leanne Graham (Sincere@april.biz)
+  - Ervin Howell (Shanna@melissa.tv)
+  - Clementine Bauch (Nathan@yesenia.net)
+
+Fetching posts for each user...
+  - Leanne Graham: 10 posts
+  - Ervin Howell: 10 posts
+  - Clementine Bauch: 10 posts
+```
+
+### Parallel File Processing
+
+```
+$ python examples/parallel_files.py
+
+=== Parallel File Processing ===
+
+Processing 2 files in parallel...
+
+File                 Size       Hash      
+----------------------------------------
+__init__.py          587        8c137857  
+runtime.py           3363       0bca3ba5
+```
+
+### Web Scraping
+
+```
+$ python examples/web_scraping.py
+
+Scraping 5 URLs in parallel...
+
+Total time:                    0.69s
+Sequential would take:         1.23s
+Speedup:                       1.8x faster
+```
+
+## When to Use
+
+**Good for:**
+- Scripts making multiple HTTP requests
+- Batch processing I/O operations
+- Parallel file operations
+
+**Not for:**
+- Thousands of concurrent connections (use asyncio)
+- CPU-bound tasks (use multiprocessing)
 
 ## Testing
 
 ```bash
 python -m unittest discover -s tests -v
 ```
-
-## Limitations
-
-- **Not true async I/O** - Uses threads, not an event loop
-- Blocking sync functions will block their thread
-- Requires `import pyasync` at top of file
-- Only transforms user code, not third-party packages
-- Thread overhead makes it unsuitable for thousands of concurrent tasks
 
 ## License
 

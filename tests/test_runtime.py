@@ -1,255 +1,146 @@
-"""Unit tests for pyasync.runtime module."""
+"""Unit tests for pyasync.runtime module (v2)."""
 
 import unittest
 import time
 import threading
 
 
-class TestPyAsyncRun(unittest.TestCase):
-    """Tests for _pyasync_run function."""
-    
-    def test_simple_coroutine(self):
-        """Test execution of a simple coroutine."""
-        from pyasync.runtime import _pyasync_run
-        
-        async def simple():
-            return 42
-        
-        result = _pyasync_run(simple())
-        self.assertEqual(result, 42)
-    
-    def test_nested_await(self):
-        """Test nested await calls."""
-        from pyasync.runtime import _pyasync_run
-        
-        async def inner():
-            return "inner"
-        
-        async def outer():
-            result = await inner()
-            return f"outer-{result}"
-        
-        result = _pyasync_run(outer())
-        self.assertEqual(result, "outer-inner")
-    
-    def test_exception_propagation(self):
-        """Test that exceptions are properly propagated."""
-        from pyasync.runtime import _pyasync_run
-        
-        async def raises():
-            raise ValueError("test error")
-        
-        with self.assertRaises(ValueError) as ctx:
-            _pyasync_run(raises())
-        
-        self.assertEqual(str(ctx.exception), "test error")
-    
-    def test_return_complex_types(self):
-        """Test returning complex data structures."""
-        from pyasync.runtime import _pyasync_run
-        
-        async def returns_complex():
-            return {"key": "value", "list": [1, 2, 3], "nested": {"a": 1}}
-        
-        result = _pyasync_run(returns_complex())
-        self.assertEqual(result["key"], "value")
-        self.assertEqual(result["list"], [1, 2, 3])
-        self.assertEqual(result["nested"]["a"], 1)
-    
-    def test_with_non_coroutine(self):
-        """Test that _pyasync_run returns non-coroutines as-is."""
-        from pyasync.runtime import _pyasync_run
-        
-        result = _pyasync_run(42)
-        self.assertEqual(result, 42)
-        
-        result = _pyasync_run("string")
-        self.assertEqual(result, "string")
-
-
-class TestPyAsyncAwait(unittest.TestCase):
-    """Tests for _pyasync_await function."""
-    
-    def test_with_sync_value(self):
-        """Test _pyasync_await with synchronous values."""
-        from pyasync.runtime import _pyasync_await, _pyasync_run
-        
-        async def use_await():
-            result = await _pyasync_await(42)
-            return result
-        
-        result = _pyasync_run(use_await())
-        self.assertEqual(result, 42)
-    
-    def test_with_coroutine(self):
-        """Test _pyasync_await passes through coroutines."""
-        from pyasync.runtime import _pyasync_await, _pyasync_run
-        
-        async def inner():
-            return "from_coroutine"
-        
-        async def outer():
-            coro = inner()
-            wrapped = _pyasync_await(coro)
-            return await wrapped
-        
-        result = _pyasync_run(outer())
-        self.assertEqual(result, "from_coroutine")
-
-
-class TestSleep(unittest.TestCase):
-    """Tests for sleep function."""
-    
-    def test_sleep_pauses_execution(self):
-        """Test that sleep actually pauses execution."""
-        from pyasync.runtime import _pyasync_run, sleep
-        
-        async def with_sleep():
-            start = time.monotonic()
-            await sleep(0.1)
-            elapsed = time.monotonic() - start
-            return elapsed >= 0.1
-        
-        result = _pyasync_run(with_sleep())
-        self.assertTrue(result)
-
-
-class TestGather(unittest.TestCase):
-    """Tests for gather function."""
+class TestParallel(unittest.TestCase):
+    """Tests for parallel() function."""
     
     def test_empty(self):
-        """Test gather with no arguments."""
-        from pyasync.runtime import gather
+        """Test parallel with no arguments."""
+        from pyasync import parallel
         
-        results = gather()
+        results = parallel()
         self.assertEqual(results, [])
     
     def test_single(self):
-        """Test gather with a single coroutine."""
-        from pyasync.runtime import gather
+        """Test parallel with single callable."""
+        from pyasync import parallel
         
-        async def task():
-            return "single"
-        
-        results = gather(task())
-        self.assertEqual(results, ["single"])
+        results = parallel(lambda: 42)
+        self.assertEqual(results, [42])
     
     def test_multiple(self):
-        """Test gather with multiple coroutines."""
-        from pyasync.runtime import gather
+        """Test parallel with multiple callables."""
+        from pyasync import parallel
         
-        async def task(n):
-            return n * 2
-        
-        results = gather(task(1), task(2), task(3))
-        self.assertEqual(results, [2, 4, 6])
+        results = parallel(
+            lambda: 1,
+            lambda: 2,
+            lambda: 3
+        )
+        self.assertEqual(results, [1, 2, 3])
     
     def test_parallel_execution(self):
-        """Test that gather runs tasks in parallel."""
-        from pyasync.runtime import gather, sleep
+        """Test that parallel runs callables concurrently."""
+        from pyasync import parallel
         
-        async def slow_task(n):
-            await sleep(0.2)
+        def slow_task(n):
+            time.sleep(0.2)
             return n
         
         start = time.monotonic()
-        results = gather(slow_task(1), slow_task(2), slow_task(3))
+        results = parallel(
+            lambda: slow_task(1),
+            lambda: slow_task(2),
+            lambda: slow_task(3)
+        )
         elapsed = time.monotonic() - start
         
         self.assertEqual(results, [1, 2, 3])
         self.assertLess(elapsed, 0.5)  # Should be ~0.2s, not ~0.6s
     
     def test_preserves_order(self):
-        """Test that gather preserves result order."""
-        from pyasync.runtime import gather, sleep
+        """Test that parallel preserves result order."""
+        from pyasync import parallel
         
-        async def task(n, delay):
-            await sleep(delay)
+        def task(n, delay):
+            time.sleep(delay)
             return n
         
-        results = gather(
-            task(1, 0.2),
-            task(2, 0.15),
-            task(3, 0.1)
+        results = parallel(
+            lambda: task(1, 0.2),
+            lambda: task(2, 0.1),
+            lambda: task(3, 0.05)
         )
         
         self.assertEqual(results, [1, 2, 3])
+    
+    def test_exception_propagation(self):
+        """Test that exceptions are propagated."""
+        from pyasync import parallel
+        
+        def failing():
+            raise ValueError("test error")
+        
+        with self.assertRaises(ValueError):
+            parallel(lambda: 1, failing)
 
 
-class TestSpawn(unittest.TestCase):
-    """Tests for spawn function."""
+class TestBackground(unittest.TestCase):
+    """Tests for background() function."""
     
     def test_basic(self):
-        """Test basic spawn functionality."""
-        from pyasync.runtime import spawn, sleep
+        """Test basic background functionality."""
+        from pyasync import background
         
-        async def task():
-            await sleep(0.1)
-            return "done"
+        task = background(lambda: 42)
+        result = task.result()
         
-        spawned = spawn(task())
-        self.assertFalse(spawned.done)
-        
-        result = spawned.result()
-        self.assertEqual(result, "done")
-        self.assertTrue(spawned.done)
+        self.assertEqual(result, 42)
+        self.assertTrue(task.done)
     
     def test_runs_in_background(self):
-        """Test that spawn runs task in background."""
-        from pyasync.runtime import spawn, sleep
+        """Test that background runs task concurrently."""
+        from pyasync import background
         
         results = []
         
-        async def background_task():
-            await sleep(0.1)
+        def bg_task():
+            time.sleep(0.1)
             results.append("background")
             return "done"
         
-        spawned = spawn(background_task())
+        task = background(bg_task)
         results.append("main_before")
         
-        spawned.result()
+        task.result()
         results.append("main_after")
         
         self.assertEqual(results, ["main_before", "background", "main_after"])
     
     def test_exception_propagation(self):
-        """Test that spawn propagates exceptions."""
-        from pyasync.runtime import spawn
+        """Test that exceptions are propagated."""
+        from pyasync import background
         
-        async def failing_task():
+        def failing():
             raise RuntimeError("task failed")
         
-        spawned = spawn(failing_task())
+        task = background(failing)
         
-        with self.assertRaises(RuntimeError) as ctx:
-            spawned.result()
-        
-        self.assertEqual(str(ctx.exception), "task failed")
+        with self.assertRaises(RuntimeError):
+            task.result()
 
 
-class TestEventLoop(unittest.TestCase):
-    """Tests for EventLoop internals."""
+class TestRun(unittest.TestCase):
+    """Tests for run() function."""
     
-    def test_thread_local_loops(self):
-        """Test that each thread gets its own event loop."""
-        from pyasync.runtime import _get_event_loop
+    def test_basic(self):
+        """Test basic run functionality."""
+        from pyasync import run
         
-        main_loop = _get_event_loop()
-        thread_loops = []
+        result = run(lambda: 42)
+        self.assertEqual(result, 42)
+    
+    def test_with_complex_return(self):
+        """Test run with complex return value."""
+        from pyasync import run
         
-        def get_loop_in_thread():
-            loop = _get_event_loop()
-            thread_loops.append(loop)
-        
-        threads = [threading.Thread(target=get_loop_in_thread) for _ in range(3)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        
-        all_loops = [main_loop] + thread_loops
-        self.assertEqual(len(all_loops), len(set(id(l) for l in all_loops)))
+        result = run(lambda: {"key": "value", "list": [1, 2, 3]})
+        self.assertEqual(result["key"], "value")
+        self.assertEqual(result["list"], [1, 2, 3])
 
 
 if __name__ == '__main__':
