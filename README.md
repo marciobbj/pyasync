@@ -1,10 +1,12 @@
 # PyAsync
 
-A **minimalist Python library** for async execution. No event loops, no complex setup - just simple, elegant and intuitive Python code. As Python is intended to be 😉
+**Thread-based parallelism with async-like syntax** for Python. Simplify concurrent code without the complexity of asyncio.
+
+> ⚠️ **Important:** This is NOT a replacement for proper async programming. It's a convenience tool that uses threads under the hood, not true non-blocking I/O. See [When to Use](#when-to-use-and-when-not-to) below.
 
 ## Why?
 
-I was tired of writing wrappers for my async functions, so I created this library to make async execution transparent. I don't want to handle the event loop, I don't my code to be a mess, I am a Pythonista, I just want to execute my async functions and get the result. 😜
+I wanted a simpler way to run HTTP requests in parallel without asyncio boilerplate. This library provides async-like syntax powered by threads - great for scripts and prototyping, not for production async applications.
 
 ## Installation
 
@@ -29,30 +31,14 @@ async def fetch_data():
     await pyasync.sleep(1)
     return {"message": "Hello, World!"}
 
-# No wrapper needed! Just call it directly.
+# No wrapper needed - runs synchronously
 data = fetch_data()
 print(data)  # {'message': 'Hello, World!'}
 ```
 
-## Using with Sync Libraries
+## Parallel Execution with gather()
 
-`await` works on **any** expression, not just coroutines:
-
-```python
-import pyasync
-import requests  # sync library!
-
-async def get_user():
-    response = await requests.get("https://api.github.com/users/marciobbj")
-    return response.json()
-
-user = get_user()
-print(user["login"])  # marciobbj
-```
-
-## Real Concurrency
-
-PyAsync provides **real parallel execution** using threads:
+The main value of this library - **run multiple tasks in parallel using threads**:
 
 ```python
 import pyasync
@@ -62,7 +48,7 @@ async def fetch(url):
     response = await requests.get(url)
     return response.status_code
 
-# All 3 requests run in PARALLEL!
+# All 3 requests run in PARALLEL threads!
 results = pyasync.gather(
     fetch("https://httpbin.org/delay/1"),
     fetch("https://httpbin.org/delay/1"),
@@ -71,58 +57,34 @@ results = pyasync.gather(
 # Takes ~1 second, not ~3 seconds!
 ```
 
-### Web Scraping Example
-
 ```
 $ python examples/web_scraping.py
-
-Scraping 5 URLs in parallel...
-
-URL                            Status   Size         Time    
-------------------------------------------------------------
-google.com                     200      18185        0.22s
-github.com                     200      562266       0.17s
-python.org                     200      49639        0.08s
-wikipedia.org                  403      126          0.07s
-httpbin.org/get                200      307          0.69s
 
 Total time:                    0.69s
 Sequential would take:         1.23s
 Speedup:                       1.8x faster
 ```
 
-### Background Tasks
+## When to Use (and When NOT to)
 
-```python
-import pyasync
+### Good Use Cases
+- Quick scripts that make multiple HTTP requests
+- Prototyping concurrent code
+- Batch processing with I/O operations
 
-async def slow_operation():
-    await pyasync.sleep(5)
-    return "done!"
-
-# Start in background
-task = pyasync.spawn(slow_operation())
-
-# Do other things while it runs...
-print("Working...")
-
-# Get result when ready
-result = task.result()
-```
-
-## API
-
-| Function | Description |
-|----------|-------------|
-| `gather(*coros)` | Run tasks in parallel, return list of results |
-| `spawn(coro)` | Start task in background, return Task handle |
-| `sleep(seconds)` | Pause execution |
+### Not Recommended For
+- Production applications requiring high concurrency
+- Thousands of simultaneous connections (use asyncio/aiohttp)
+- CPU-bound tasks (use multiprocessing)
+- Applications where true non-blocking I/O matters
 
 ## How It Works
 
 1. **Import Hook** - Intercepts module loading
-2. **AST Transformation** - Transforms async calls automatically
-3. **ThreadPoolExecutor** - Powers real parallel execution
+2. **AST Transformation** - Wraps async function calls automatically
+3. **ThreadPoolExecutor** - Powers parallel execution for `gather()` and `spawn()`
+
+**Key detail:** When you `await` a sync function, it runs normally in the same thread and returns immediately. There's no threading for individual `await` expressions - threading only happens with `gather()` and `spawn()`.
 
 ```
 gather(task1, task2, task3)
@@ -135,6 +97,33 @@ gather(task1, task2, task3)
          Collect Results
 ```
 
+## API
+
+| Function | Description |
+|----------|-------------|
+| `gather(*coros)` | Run tasks in parallel threads, return list of results |
+| `spawn(coro)` | Start task in background thread, return Task handle |
+| `sleep(seconds)` | Pause execution |
+
+## Background Tasks
+
+```python
+import pyasync
+
+async def slow_operation():
+    await pyasync.sleep(5)
+    return "done!"
+
+# Start in background thread
+task = pyasync.spawn(slow_operation())
+
+# Do other things while it runs...
+print("Working...")
+
+# Get result when ready
+result = task.result()
+```
+
 ## Examples
 
 See the `examples/` directory:
@@ -144,27 +133,20 @@ See the `examples/` directory:
 - `background_tasks.py` - spawn() for background work
 - `web_scraping.py` - Parallel web scraping
 - `multiple_api_calls.py` - Parallel API calls
-- `parallel_file_processing.py` - File processing
-- `mixing_sync_async.py` - Mix sync and async code
 
 ## Testing
-
-Run all unit tests:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Test files:
-- `test_runtime.py` - Runtime, gather, spawn
-- `test_transformer.py` - AST transformations
-- `test_hook.py` - Import hooks
-
 ## Limitations
 
+- **Not true async I/O** - Uses threads, not an event loop
+- Blocking sync functions will block their thread
 - Requires `import pyasync` at top of file
-- Thread-based (good for I/O, not for thousands of connections)
 - Only transforms user code, not third-party packages
+- Thread overhead makes it unsuitable for thousands of concurrent tasks
 
 ## License
 
