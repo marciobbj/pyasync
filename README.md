@@ -1,10 +1,10 @@
 # PyAsync
 
-A **minimalist Python library** for async execution. No event loops, no complex setup - just simple, intuitive async code.
+A **minimalist Python library** for async execution. No event loops, no complex setup - just simple, elegant and intuitive Python code. As Python is intended to be 😉
 
 ## Why?
 
-I was tired of writing wrappers for my async functions, so I created this library to make async execution transparent. I don't want to handle the event loop, I just want to execute my async functions and get the result, like in JavaScript.
+I was tired of writing wrappers for my async functions, so I created this library to make async execution transparent. I don't want to handle the event loop, I don't my code to be a mess, I am a Pythonista, I just want to execute my async functions and get the result. 😜
 
 ## Installation
 
@@ -140,6 +140,19 @@ See the `examples/` directory:
 - `multiple_api_calls.py` - Parallel API calls
 - `parallel_file_processing.py` - File processing
 - `mixing_sync_async.py` - Mix sync and async code
+
+## Testing
+
+Run all unit tests:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Test files:
+- `test_runtime.py` - Runtime, gather, spawn
+- `test_transformer.py` - AST transformations
+- `test_hook.py` - Import hooks
 
 ## Limitations
 
